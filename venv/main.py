@@ -6,6 +6,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import sendgrid
 from sendgrid.helpers.mail import Mail, Email, To, Content
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 
@@ -34,7 +36,7 @@ def send_email(subject, body):
 
 
 
-courseID = ["r-160", "r-180", "r-186", "r-173"]
+courseID = ["cs4376", "cs4391", "cs4389", "cs4371", "cs4352"]
 
 chrome_driver_path = r"C:\Users\rayan\OneDrive\Desktop\chromedriver-win64\chromedriver.exe"
 
@@ -42,6 +44,7 @@ chrome_driver_path = r"C:\Users\rayan\OneDrive\Desktop\chromedriver-win64\chrome
 options = Options()
 options.headless = True
 options.add_argument('--ignore-certificate-errors')
+options.add_argument('--allow-insecure-localhost')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-gpu')
@@ -67,22 +70,24 @@ driver.execute_script("do_guided_search();")
 
 time.sleep(3)
 
-for course in courseID:
-    class_row = driver.find_element(By.ID, course)
-    status_elements = class_row.find_elements(By.CLASS_NAME, 'section-closed')
-    course_name_element = class_row.find_elements(By.TAG_NAME, "td")[3]  # Adjust index for different names
-    course_name = course_name_element.text
 
-    if status_elements:
-        status = status_elements[0].text
-        if status.lower() == 'full':
-            print(f"The class {course_name} is full")
-        else:
-            print(f"Class {course_name} is open!")
-            send_email("Class Opened Up fatass", f"The class {course_name} with ID {course} is now open.")
-    else: 
-        print(f"This class {course_name} is open!")
-        send_email("Class Opened up!", f"The class {course_name} with ID {course} is now open.")
+
+for course in courseID:
+    courses = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.XPATH, f"//tr[starts-with(@data-id, '{course}')]"))
+    )
+    for class_row in courses:
+        try:
+            status_elements = class_row.find_elements(By.CLASS_NAME, 'section-closed')
+            course_name_element = class_row.find_elements(By.TAG_NAME, "td")[3]
+            course_name = course_name_element.text
+            if status_elements and status_elements[0].text.lower() == 'full':
+                print(f"The class {course_name} is full")
+            else:
+                print(f"Class {course_name} is open!")
+                send_email("Class open bitch", f"Class {course} {course_name} is now open you pussy bitch")
+        except Exception as e:
+            print(f"Error processing row: {e}")
 
 
 driver.quit()
